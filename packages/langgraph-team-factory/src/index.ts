@@ -1,4 +1,5 @@
 export { createTeamFactory } from "./factory/createTeamFactory.js";
+export { createDeclarativeAgent } from "./declarative/createDeclarativeAgent.js";
 
 export {
   TeamRuntimeError,
@@ -37,5 +38,16 @@ export type {
   ModelAdapter,
   ModelRequest,
   ModelResponse,
-  ModelUsage
+  ModelUsage,
+  DeclarativeTextTemplate,
+  DeclarativeMetadataTemplate,
+  DeclarativeAgentTool,
+  DeclarativeRetryPolicy,
+  DeclarativePromptConfig,
+  DeclarativeToolResult,
+  DeclarativeAgentEnvelope,
+  DeclarativeBuildRequestParams,
+  DeclarativeAgentConfig,
+  DeclarativeTeamAgent,
+  DeclarativeAgentResult
 } from "./types/index.js";

@@ -27,3 +27,16 @@ export type {
   ValidationMode,
   TeamCompletionReason
 } from "./common.js";
+export type {
+  DeclarativeTextTemplate,
+  DeclarativeMetadataTemplate,
+  DeclarativeAgentTool,
+  DeclarativeRetryPolicy,
+  DeclarativePromptConfig,
+  DeclarativeToolResult,
+  DeclarativeAgentEnvelope,
+  DeclarativeBuildRequestParams,
+  DeclarativeAgentConfig,
+  DeclarativeTeamAgent,
+  DeclarativeAgentResult
+} from "./declarative.js";

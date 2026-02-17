@@ -14,7 +14,8 @@
     "lint": "pnpm -r lint",
     "clean": "pnpm -r clean",
     "example:supervisor": "pnpm --filter @agent-team/langgraph-team-factory build && node examples/supervisor-routing/index.mjs",
-    "example:tool": "pnpm --filter @agent-team/langgraph-team-factory build && node examples/tool-enabled-agent/index.mjs"
+    "example:tool": "pnpm --filter @agent-team/langgraph-team-factory build && node examples/tool-enabled-agent/index.mjs",
+    "example:declarative": "pnpm --filter @agent-team/langgraph-team-factory build && node examples/declarative-team/index.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

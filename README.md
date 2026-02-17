@@ -115,6 +115,42 @@ console.log(result.output);
 - `hooks` override
 - `failOnHookError`
 
+### `createDeclarativeAgent(config)`
+
+- 프롬프트 템플릿 선언형 설정 (`system`, `developer`, `context`, `user`)
+- 에이전트별 툴 실행 (`tools`)
+- 재시도/백오프 (`retry.attempts`, `retry.backoffMs`)
+- 에이전트별 타임아웃 (`timeoutMs`)
+- 응답 파싱 (`responseSchema` 또는 `parseResponse`)
+- 상태/출력/라우팅 후처리 (`stateResolver`, `outputResolver`, `decisionResolver`)
+
+```ts
+import { createDeclarativeAgent } from "@agent-team/langgraph-team-factory";
+import { z } from "zod";
+
+const researcher = createDeclarativeAgent({
+  id: "researcher",
+  prompt: {
+    system: "너는 리서처다.",
+    user: (ctx) => `질문: ${ctx.input.query}`
+  },
+  tools: [
+    {
+      name: "memory",
+      execute: async () => "최근 요약"
+    }
+  ],
+  retry: { attempts: 2, backoffMs: 100 },
+  responseSchema: z.object({
+    summary: z.string()
+  }),
+  stateResolver: ({ ctx, parsed }) => ({
+    ...ctx.state,
+    notes: [...ctx.state.notes, parsed?.summary ?? "none"]
+  })
+});
+```
+
 ## 런타임 동작 요약
 
 1. 입력 상태 생성/검증
@@ -123,6 +159,22 @@ console.log(result.output);
 4. Worker 실행 후 Supervisor로 복귀
 5. `isDone(state)` 또는 `__end__`로 종료
 6. `TeamRunResult` 반환
+
+## 실행 흐름 다이어그램
+
+```mermaid
+flowchart TD
+  A["createTeamFactory(options)"] --> B["factory.createTeam(config)"]
+  B --> C["team.run(input)"]
+  C --> D["초기 상태 생성 + Zod 검증"]
+  D --> E["Supervisor 실행"]
+  E --> F{"종료 조건 확인"}
+  F -- "isDone(state)=true" --> Z["종료: reason=done"]
+  F -- "decision.next='__end__'" --> Y["종료: reason=route_end"]
+  F -- "다음 Worker 지정" --> G["Worker 실행"]
+  G --> H["routeTrace 기록 + onRoute/onStep 훅"]
+  H --> E
+```
 
 ## 오류 모델
 
@@ -139,10 +191,12 @@ console.log(result.output);
 ```bash
 pnpm example:supervisor
 pnpm example:tool
+pnpm example:declarative
 ```
 
 - `examples/supervisor-routing/index.mjs`
 - `examples/tool-enabled-agent/index.mjs`
+- `examples/declarative-team/index.mjs`
 
 ## 문서
 

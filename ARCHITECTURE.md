@@ -17,6 +17,8 @@ packages/langgraph-team-factory/
     index.ts                    # 공개 API export
     factory/
       createTeamFactory.ts      # 단일 진입점 팩토리
+    declarative/
+      createDeclarativeAgent.ts # 선언형 에이전트 빌더
     runtime/
       compileGraph.ts           # LangGraph StateGraph 컴파일 (best-effort)
       runTeam.ts                # 실제 실행 루프(source of truth)
@@ -40,6 +42,24 @@ packages/langgraph-team-factory/
   - `teamId`, `supervisor`, `agents`, `termination` 정의
 - `team.run(input, runOptions?)`
   - 팀 실행, 최종 상태/출력/trace 반환
+- `createDeclarativeAgent(config)`
+  - 선언형 프롬프트/툴/리트라이/타임아웃/응답파싱/상태반영 구성
+
+## 선언형 에이전트 빌더
+
+`createDeclarativeAgent`는 `TeamAgent.run`을 직접 작성하지 않아도, 설정 객체만으로 에이전트를 만들 수 있게 해줍니다.
+
+- 프롬프트 템플릿
+  - `prompt.system`, `prompt.developer`, `prompt.context`, `prompt.user`
+- 툴
+  - `tools[]` 선언 후 실행 결과를 프롬프트에 자동 주입
+  - `toolErrorMode: "throw" | "continue"`
+- 모델 호출 제어
+  - `retry.attempts`, `retry.backoffMs`, `timeoutMs`
+  - `fallbackResponseText`(모델 없을 때 fallback)
+- 응답 처리
+  - `responseSchema`(Zod) 또는 `parseResponse`
+  - `stateResolver`, `outputResolver`, `decisionResolver`
 
 ## 실행 흐름
 
@@ -138,4 +158,3 @@ packages/langgraph-team-factory/
 - 린트: `pnpm lint`
 - 테스트: `pnpm test`
 - 커버리지 게이트: `pnpm test:c8` (라인 80% 이상)
-
