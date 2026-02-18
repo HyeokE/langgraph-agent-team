@@ -8,8 +8,11 @@ export type {
   TeamStepEvent,
   TeamRouteEvent,
   TeamErrorEvent,
+  TeamMessageEvent,
   TeamHooks
 } from "./hooks.js";
+export type { ChatMessage } from "./chat.js";
+export { extractMentions } from "./chat.js";
 export type {
   TeamConfig,
   TeamFactoryOptions,

@@ -16,8 +16,48 @@ import type {
   TeamRunResult
 } from "../types/runtime.js";
 import type { TeamErrorEvent } from "../types/hooks.js";
+import type { ChatMessage } from "../types/chat.js";
+import { extractMentions } from "../types/chat.js";
 import { validateState } from "./validateState.js";
 import type { CompiledTeamGraph } from "./compileGraph.js";
+
+/**
+ * mention 목록에서 실제로 라우팅할 에이전트 ID를 결정합니다.
+ *
+ * TODO: 아래 로직을 원하는 방식으로 구현하세요.
+ *
+ * 고려할 트레이드오프:
+ * - 자기 자신(@self)을 mention하면 어떻게 처리할 것인가?
+ * - Supervisor를 mention하면 "Supervisor에게 복귀"로 해석할 것인가, 아니면 무시할 것인가?
+ * - mention 목록에 유효한 에이전트가 없을 경우 undefined 반환 → 일반 Supervisor 라우팅으로 fallback
+ *
+ * @param mentions     content에서 추출된 @agentId 목록
+ * @param workers      worker 에이전트 맵 (agentId → TeamAgent)
+ * @param supervisorId Supervisor 에이전트 ID
+ * @returns 라우팅할 에이전트 ID, 없으면 undefined
+ */
+function resolveMentionTarget<TState, TInput, TOutput>(
+  mentions: string[],
+  workers: Map<string, TeamAgent<TState, TInput, TOutput>>,
+  supervisorId: string
+): string | undefined {
+  // TODO: 여기서 mention 우선순위를 구현하세요 (5~10줄)
+  //
+  // 힌트:
+  //   workers.has(id)  → worker 에이전트 존재 여부 확인
+  //   id === supervisorId → Supervisor 여부 확인
+  //
+  // 가장 단순한 구현 예시:
+  //   첫 번째로 등장하는 "유효한 worker 에이전트" ID를 반환
+  //   (Supervisor mention과 알 수 없는 에이전트는 건너뜀)
+  for (const id of mentions) {
+    if (workers.has(id)) {
+      return id;
+    }
+  }
+
+  return undefined;
+}
 
 interface RunTeamParams<TState, TInput, TOutput> {
   config: TeamConfig<TState, TInput, TOutput>;
@@ -111,6 +151,7 @@ export async function runTeam<TState, TInput, TOutput>(
   const validationMode = factoryOptions.validationMode ?? "strict";
   const deadlineMs = runOptions?.timeoutMs ? Date.now() + runOptions.timeoutMs : undefined;
   const routeTrace: RouteTraceEntry<TState>[] = [];
+  const chatHistory: ChatMessage[] = [];
   const workers = new Map(config.agents.map((agent) => [agent.id, agent]));
   const startedAt = getNowIso();
   let steps = 0;
@@ -171,6 +212,7 @@ export async function runTeam<TState, TInput, TOutput>(
       state,
       steps,
       routeTrace,
+      chatHistory,
       completed: true as const,
       reason,
       startedAt,
@@ -241,6 +283,7 @@ export async function runTeam<TState, TInput, TOutput>(
       input,
       state,
       routeTrace,
+      chatHistory,
       compiledGraph: compiledGraph.graph,
       ...(factoryOptions.modelAdapter !== undefined ? { model: factoryOptions.modelAdapter } : {}),
       ...(runOptions?.signal !== undefined ? { signal: runOptions.signal } : {})
@@ -257,6 +300,52 @@ export async function runTeam<TState, TInput, TOutput>(
 
     steps = step;
     state = result.state as TState;
+
+    // 에이전트가 채팅 메시지를 게시한 경우 처리
+    let mentionTarget: string | undefined;
+
+    if (result.message !== undefined) {
+      const rawMessage = result.message;
+      const mentions = rawMessage.mentions.length > 0
+        ? rawMessage.mentions
+        : extractMentions(rawMessage.content);
+
+      const chatMessage: ChatMessage = {
+        id: `${config.teamId}-${step}-${agent.id}`,
+        step,
+        timestamp: getNowIso(),
+        agentId: rawMessage.agentId,
+        agentName: rawMessage.agentName,
+        content: rawMessage.content,
+        mentions,
+        replyTo: rawMessage.replyTo
+      };
+
+      chatHistory.push(chatMessage);
+
+      await safeCallHook({
+        hooks,
+        hookName: "onMessage",
+        payload: {
+          teamId: config.teamId,
+          step,
+          message: chatMessage,
+          input,
+          state
+        },
+        failOnHookError,
+        onHookErrorEvent: {
+          teamId: config.teamId,
+          step,
+          agentId: agent.id,
+          input,
+          state
+        }
+      });
+
+      // Hard 라우팅: 첫 번째 유효한 @mention 대상으로 직접 라우팅
+      mentionTarget = resolveMentionTarget(mentions, workers, config.supervisor.id);
+    }
 
     if (validationMode === "strict") {
       try {
@@ -309,6 +398,41 @@ export async function runTeam<TState, TInput, TOutput>(
 
     if (done) {
       return finalize("done");
+    }
+
+    // @mention Hard 라우팅: Supervisor를 우회하고 직접 라우팅
+    if (mentionTarget !== undefined) {
+      routeTrace.push({
+        step,
+        from: agent.id,
+        to: mentionTarget,
+        timestamp: getNowIso(),
+        stateSnapshot: cloneSnapshot(state)
+      });
+
+      await safeCallHook({
+        hooks,
+        hookName: "onRoute",
+        payload: {
+          teamId: config.teamId,
+          step,
+          from: agent.id,
+          to: mentionTarget,
+          input,
+          state
+        },
+        failOnHookError,
+        onHookErrorEvent: {
+          teamId: config.teamId,
+          step,
+          agentId: agent.id,
+          input,
+          state
+        }
+      });
+
+      currentAgentId = mentionTarget;
+      continue;
     }
 
     if (agent.id === config.supervisor.id) {

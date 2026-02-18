@@ -12,6 +12,7 @@ export function mergeHooks<TState, TInput, TOutput>(
   const onStep = overrides?.onStep ?? base?.onStep;
   const onRoute = overrides?.onRoute ?? base?.onRoute;
   const onError = overrides?.onError ?? base?.onError;
+  const onMessage = overrides?.onMessage ?? base?.onMessage;
 
   if (onStep !== undefined) {
     merged.onStep = onStep;
@@ -23,6 +24,10 @@ export function mergeHooks<TState, TInput, TOutput>(
 
   if (onError !== undefined) {
     merged.onError = onError;
+  }
+
+  if (onMessage !== undefined) {
+    merged.onMessage = onMessage;
   }
 
   return merged;

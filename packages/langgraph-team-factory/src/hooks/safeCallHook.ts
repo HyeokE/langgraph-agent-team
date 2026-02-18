@@ -2,7 +2,7 @@ import type { TeamErrorEvent, TeamHooks } from "../types/hooks.js";
 
 interface SafeCallHookParams<TState, TInput, TOutput, TPayload> {
   hooks: TeamHooks<TState, TInput, TOutput> | undefined;
-  hookName: "onStep" | "onRoute" | "onError";
+  hookName: "onStep" | "onRoute" | "onError" | "onMessage";
   payload: TPayload;
   failOnHookError: boolean;
   onHookErrorEvent?: Omit<TeamErrorEvent<TState, TInput>, "source" | "error">;

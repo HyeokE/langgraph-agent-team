@@ -1,0 +1,21 @@
+appId: com.agent-team.electron-app
+productName: Agent Team Manager
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out
+  - '!**/.vite/**/*'
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  darkModeSupport: true
+dmg:
+  title: Agent Team Manager
+nsis:
+  oneClick: false
+  perMachine: false

@@ -15,7 +15,10 @@
     "clean": "pnpm -r clean",
     "example:supervisor": "pnpm --filter @agent-team/langgraph-team-factory build && node examples/supervisor-routing/index.mjs",
     "example:tool": "pnpm --filter @agent-team/langgraph-team-factory build && node examples/tool-enabled-agent/index.mjs",
-    "example:declarative": "pnpm --filter @agent-team/langgraph-team-factory build && node examples/declarative-team/index.mjs"
+    "example:declarative": "pnpm --filter @agent-team/langgraph-team-factory build && node examples/declarative-team/index.mjs",
+    "app:dev": "pnpm --filter @agent-team/electron-app dev",
+    "app:build": "pnpm --filter @agent-team/electron-app build",
+    "app:package": "pnpm --filter @agent-team/electron-app package"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

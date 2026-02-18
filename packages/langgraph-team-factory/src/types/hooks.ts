@@ -1,5 +1,6 @@
 import type { AgentResult } from "./agent.js";
 import type { RouteDecision } from "./common.js";
+import type { ChatMessage } from "./chat.js";
 
 export interface TeamStepEvent<TState, TInput, TOutput> {
   teamId: string;
@@ -30,8 +31,18 @@ export interface TeamErrorEvent<TState, TInput> {
   source: "runtime" | "agent" | "hook";
 }
 
+export interface TeamMessageEvent<TState, TInput> {
+  teamId: string;
+  step: number;
+  message: ChatMessage;
+  input: TInput;
+  state: TState;
+}
+
 export interface TeamHooks<TState, TInput, TOutput> {
   onStep?(event: TeamStepEvent<TState, TInput, TOutput>): void | Promise<void>;
   onRoute?(event: TeamRouteEvent<TState, TInput>): void | Promise<void>;
   onError?(event: TeamErrorEvent<TState, TInput>): void | Promise<void>;
+  /** 에이전트가 채팅 메시지를 게시했을 때 호출됩니다. */
+  onMessage?(event: TeamMessageEvent<TState, TInput>): void | Promise<void>;
 }
