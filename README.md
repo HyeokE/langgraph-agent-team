@@ -4,7 +4,10 @@ LangGraph 기반 에이전트 팀 오케스트레이션 패키지 `@agent-team/l
 
 ## 포함 패키지
 
-- `@agent-team/langgraph-team-factory`
+| 패키지                               | 설명                                                      |
+| ------------------------------------ | --------------------------------------------------------- |
+| `@agent-team/langgraph-team-factory` | LangGraph 기반 에이전트 팀 오케스트레이션 핵심 라이브러리 |
+| `@agent-team/electron-app`           | React + Electron 기반 데스크탑 GUI 애플리케이션           |
 
 ## 요구사항
 
@@ -19,12 +22,22 @@ pnpm install
 
 ## 워크스페이스 명령
 
+### 공통
+
 ```bash
 pnpm typecheck
 pnpm lint
 pnpm test
 pnpm test:c8
 pnpm build
+```
+
+### Electron 앱
+
+```bash
+pnpm app:dev       # 개발 서버 실행
+pnpm app:build     # 앱 빌드
+pnpm app:package   # macOS 패키지 (.dmg 등) 생성
 ```
 
 ## 빠른 시작
@@ -42,12 +55,12 @@ type State = {
 const stateSchema = z.object({
   stage: z.enum(["triage", "work", "done"]),
   task: z.string(),
-  result: z.string().optional()
+  result: z.string().optional(),
 });
 
 const factory = createTeamFactory<State, State, string>({
   stateSchema,
-  validationMode: "strict"
+  validationMode: "strict",
 });
 
 const team = factory.createTeam({
@@ -58,34 +71,34 @@ const team = factory.createTeam({
       if (ctx.state.stage === "triage") {
         return {
           state: { ...ctx.state, stage: "work" },
-          decision: { next: "worker" }
+          decision: { next: "worker" },
         };
       }
 
       return {
         state: { ...ctx.state, stage: "done" },
-        decision: { next: "__end__" }
+        decision: { next: "__end__" },
       };
-    }
+    },
   },
   agents: [
     {
       id: "worker",
       run: async (ctx) => ({
         state: { ...ctx.state, result: `done: ${ctx.state.task}` },
-        output: `done: ${ctx.state.task}`
-      })
-    }
+        output: `done: ${ctx.state.task}`,
+      }),
+    },
   ],
   termination: {
     maxSteps: 6,
-    isDone: (state) => state.stage === "done"
-  }
+    isDone: (state) => state.stage === "done",
+  },
 });
 
 const result = await team.run({
   stage: "triage",
-  task: "summarize architecture"
+  task: "summarize architecture",
 });
 
 console.log(result.output);
@@ -132,22 +145,22 @@ const researcher = createDeclarativeAgent({
   id: "researcher",
   prompt: {
     system: "너는 리서처다.",
-    user: (ctx) => `질문: ${ctx.input.query}`
+    user: (ctx) => `질문: ${ctx.input.query}`,
   },
   tools: [
     {
       name: "memory",
-      execute: async () => "최근 요약"
-    }
+      execute: async () => "최근 요약",
+    },
   ],
   retry: { attempts: 2, backoffMs: 100 },
   responseSchema: z.object({
-    summary: z.string()
+    summary: z.string(),
   }),
   stateResolver: ({ ctx, parsed }) => ({
     ...ctx.state,
-    notes: [...ctx.state.notes, parsed?.summary ?? "none"]
-  })
+    notes: [...ctx.state.notes, parsed?.summary ?? "none"],
+  }),
 });
 ```
 
@@ -202,6 +215,7 @@ pnpm example:declarative
 
 - 아키텍처 설명: `ARCHITECTURE.md`
 - 패키지 README: `packages/langgraph-team-factory/README.md`
+- Electron 앱: `packages/electron-app/`
 - 변경 이력: `CHANGELOG.md`
 
 ## 라이선스
